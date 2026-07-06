@@ -88,7 +88,19 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │  │  └ resume-session 续接                                           │   │
 │  │  └──────────────────────────────┬───────────────────────────────────┘   │
 │  │                                 │                                     │
-│  └─────────────────────────────────┼─────────────────────────────────────┘
+│  │  ┌──────────────────────────────▼──────────────────────────────────┐│
+│  │  │  MCP Tool Server (Gateway sidecar)                               ││
+│  │  │  ├ current_context  (session/workspace/provider 状态)             ││
+│  │  │  ├ list_sessions    (会话列表)                                    ││
+│  │  │  ├ list_providers   (可用 agent provider)                        ││
+│  │  │  ├ send_image       (图片发送到 channel)                         ││
+│  │  │  └ break_command_loop (中断循环)                                  ││
+│  │  │                                                                 ││
+│  │  │  ← stdio →  Agent Backend (provider 注入给子进程)                ││
+│  │  │  → HTTP REST → Gateway Core (查询 session/provider 状态)        ││
+│  │  └─────────────────────────────────────────────────────────────────┘│
+│  │                                                                       │
+│  └─────────────────────────────────────────────────────────────────────┘
 │                                    │                                     │
 └────────────────────────────────────┼─────────────────────────────────────┘
                                      │
@@ -127,14 +139,6 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │ Extension 生态        │  │ Plugin 生态           │                      │
 │  └──────────────────────┘  └──────────────────────┘                      │
 └─────────────────────────────────────────────────────────────────────────┘
-         │                        │
-         └───────────┬────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      MCP Tool Server                                     │
-│  current_context / list_sessions / list_providers / send_image           │
-└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 架构图 (Mermaid)
@@ -157,6 +161,7 @@ graph TB
         EXEC[CommandExecutor<br/>节点图引擎<br/>agentrun → 回调 Orchestrator<br/>script / condition / set / loop]
         ORC[Orchestrator<br/>direct / plan / enhance]
         SS[SessionStore + SessionQueue<br/>基础设施: 持久化 + 串行 dispatch]
+        MCP[MCP Tool Server sidecar<br/>context / sessions / providers<br/>← stdio → Backend<br/>→ HTTP REST → Gateway]
     end
 
     subgraph "Agent Provider Layer"
@@ -167,10 +172,6 @@ graph TB
     subgraph "Agent Backend Layer"
         CLP[CodelyCli Provider<br/>ACP Protocol<br/>长驻进程 + MCP + Extension]
         OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 + Tool schema + Plugin]
-    end
-
-    subgraph "MCP"
-        MCP[Tool Server<br/>context / sessions / providers]
     end
 
     U1 -->|WebSocket| CLI
@@ -193,7 +194,7 @@ graph TB
     IAP --> CLP
     IAP --> OCP
 
-    CLP -.->|MCP stdio| MCP
+    CLP -.->|stdio| MCP
     MCP -.->|HTTP REST| ROUTER
 ```
 
