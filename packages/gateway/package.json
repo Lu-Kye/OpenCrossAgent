@@ -1,0 +1,22 @@
+{
+  "name": "@opencross/gateway",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/gateway.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/entry.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opencross/shared": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

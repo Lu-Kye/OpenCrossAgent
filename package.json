@@ -1,0 +1,21 @@
+{
+  "name": "open-cross-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-agent orchestration gateway with multi-channel support (CLI + Feishu)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm --filter @opencross/gateway dev",
+    "test": "pnpm -r run test",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
