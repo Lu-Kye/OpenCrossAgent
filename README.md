@@ -8,83 +8,110 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        OpenCrossAgent Gateway                          │
-│                                                                        │
-│  ┌─────────────┐  ┌──────────────────┐  ┌───────────────────────────┐  │
-│  │  Channel    │  │   Session        │  │   Command System          │  │
-│  │  Layer      │  │   Manager        │  │   (JSON-defined)          │  │
-│  │             │  │                  │  │                           │  │
-│  │ IChannel    │  │ SessionStore     │  │ CommandScanner            │  │
-│  │ IChannelBridge│ │ SessionQueue    │  │ CommandExecutor           │  │
-│  │ IChannelRenderer│ │ Resume       │  │ NodeGraph Engine          │  │
-│  └──────┬──────┘  └────────┬─────────┘  └─────────────┬─────────────┘  │
-│         │                  │                          │                  │
-│         └──────────┬───────┴──────────┬──────────────┘                 │
-│                    │                  │                                 │
-│                    ▼                  ▼                                 │
+│                         Channel Layer                                   │
+│                                                                         │
+│  对接前端：接收用户消息 + 回传 agent 执行过程中的事件给前端渲染            │
+│                                                                         │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐             │
+│  │   CLI Channel           │    │   Feishu Channel        │             │
+│  │                         │    │                         │             │
+│  │  WebSocket (localhost)  │    │  Feishu WebSocket       │             │
+│  │  接收: user_input /     │    │  接收: 飞书消息 / @bot   │             │
+│  │        slash_command    │    │  回传: 卡片流式更新      │             │
+│  │  回传: agent_event 流   │    │                         │             │
+│  │        (TUI 渲染)       │    │                         │             │
+│  └───────────┬─────────────┘    └───────────┬─────────────┘             │
+│              │                               │                           │
+└──────────────┼───────────────────────────────┼───────────────────────────┘
+               │                               │
+               └───────────────┬───────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Gateway Core                                     │
+│                                                                         │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │                    Orchestrator Layer                             │   │
-│  │                                                                  │   │
-│  │  AgentOrchestrator                                               │   │
-│  │  ├ direct mode    (直接执行)                                      │   │
-│  │  ├ plan mode      (只读分析规划)                                   │   │
-│  │  └ enhance mode   (技能增强提示词)                                 │   │
-│  │                                                                  │   │
-│  │  UnifiedDispatchPipeline                                         │   │
-│  │  ├ prompt building (budget-aware)                                │   │
-│  │  ├ skill injection                                               │   │
-│  │  └ AgentEvent stream production                                  │   │
-│  └──────────────────────────┬───────────────────────────────────────┘   │
-│                             │                                           │
-│  ┌──────────────────────────▼───────────────────────────────────────┐   │
-│  │                  Agent Provider Layer                             │   │
-│  │                                                                  │   │
-│  │  IAgentProvider                                                  │   │
-│  │  ├ dispatch(prompt, options): AsyncGenerator<AgentEvent>          │   │
-│  │  ├ listModels(): Promise<ModelInfo[]>                            │   │
-│  │  ├ createSession(): Promise<SessionRef>                          │   │
-│  │  ├ resumeSession(ref): Promise<void>                            │   │
-│  │  └ stopSession(id): Promise<void>                               │   │
-│  │                                                                  │   │
-│  │  ProviderRegistry                                                │   │
-│  │  ├ register(name, provider)                                      │   │
-│  │  ├ get(name): IAgentProvider                                     │   │
-│  │  └ resolve(name?): IAgentProvider                                │   │
-│  └──────────────────────────┬───────────────────────────────────────┘   │
-│                             │                                           │
-│  ┌──────────────────────────▼───────────────────────────────────────┐   │
-│  │                   Agent Backend Layer                            │   │
-│  │                                                                  │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │   │
-│  │  │ CodelyCli    │  │ DirectLLM    │  │ CliAgent               │ │   │
-│  │  │ Provider     │  │ Provider     │  │ Provider               │ │   │
-│  │  │              │  │              │  │                        │ │   │
-│  │  │ ACP 协议     │  │ OpenAI API   │  │ spawn 子进程            │ │   │
-│  │  │ (长驻进程)   │  │ Anthropic    │  │ claude-code / aider    │ │   │
-│  │  │              │  │ Gemini API   │  │ stdout → AgentEvent    │ │   │
-│  │  │              │  │              │  │                        │ │   │
-│  │  │ MCP 工具支持  │  │ 工具调用支持  │  │ 透传模式               │ │   │
-│  │  └──────────────┘  └──────────────┘  └────────────────────────┘ │   │
+│  │  Message Router                                                   │   │
+│  │  ├ /command ? ──► Command System                                  │   │
+│  │  └ 自然语言   ──► Orchestrator                                    │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
-│                                                                        │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │                      MCP Tool Server                             │   │
-│  │  current_context / list_sessions / list_providers / send_image   │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌──────────────────────┐  ┌────────────────────────────────────────┐   │
+│  │  Command System      │  │  Orchestrator                           │   │
+│  │                      │  │                                        │   │
+│  │  CommandScanner      │  │  AgentOrchestrator                     │   │
+│  │  (4级目录扫描)        │  │  ├ direct mode  (直接执行)              │   │
+│  │                      │  │  ├ plan mode    (只读分析规划)           │   │
+│  │  CommandExecutor      │  │  └ enhance mode (技能增强提示词)        │   │
+│  │  (节点图引擎)         │  │                                        │   │
+│  │                      │  │  UnifiedDispatchPipeline                │   │
+│  │  内置命令:            │  │  ├ prompt building (budget-aware)      │   │
+│  │  /session list        │  │  ├ skill injection                     │   │
+│  │  /session new        │  │  └ AgentEvent stream production        │   │
+│  │  /session switch      │  │                                        │   │
+│  │  /session delete      │  │  SessionStore (基础设施)                │   │
+│  │  /model               │  │  ├ session 持久化 (~/.opencross/)       │   │
+│  │  /agent               │  │  ├ providerSessionId 映射              │   │
+│  │  /stop                │  │  └ resume-session 续接                 │   │
+│  │  /help                │  │                                        │   │
+│  │                      │  │  SessionQueue                           │   │
+│  │  自定义命令:           │  │  (串行 dispatch, max 10 排队)           │   │
+│  │  JSON-defined         │  │                                        │   │
+│  │  /push /bump /merge   │  │                                        │   │
+│  └──────────────────────┘  └──────────────────┬─────────────────────┘   │
+│                                               │                         │
+└───────────────────────────────────────────────┼─────────────────────────┘
+                                                │
+                                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Agent Provider Layer                                  │
+│                                                                         │
+│  IAgentProvider                                                         │
+│  ├ dispatch(prompt, options): AsyncGenerator<AgentEvent>                │
+│  ├ listModels(): Promise<ModelInfo[]>                                    │
+│  ├ createSession(): Promise<SessionRef>                                │
+│  ├ resumeSession(ref): Promise<void>                                   │
+│  └ stopSession(id): Promise<void>                                      │
+│                                                                         │
+│  ProviderRegistry                                                       │
+│  ├ register(name, provider)                                             │
+│  ├ get(name): IAgentProvider                                           │
+│  └ resolve(name?): IAgentProvider                                       │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Agent Backend Layer                                   │
+│                                                                         │
+│  ┌──────────────────────┐  ┌──────────────────────┐                      │
+│  │ CodelyCli Provider   │  │ OpenCode Provider    │                      │
+│  │                      │  │                      │                      │
+│  │ ACP 协议 (JSON-RPC)  │  │ OpenCode Protocol    │                      │
+│  │ 长驻进程              │  │ (Effect.js 服务)      │                      │
+│  │                      │  │                      │                      │
+│  │ --resume-session     │  │ SessionV2 API        │                      │
+│  │ --output-format      │  │ 事件流               │                      │
+│  │   stream-json        │  │   (SessionRunner)     │                      │
+│  │                      │  │                      │                      │
+│  │ MCP 工具支持          │  │ Tool schema 系统     │                      │
+│  │ Extension 生态        │  │ Plugin 生态           │                      │
+│  └──────────────────────┘  └──────────────────────┘                      │
+│                                                                         │
+│  后续扩展:                                                               │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐               │
+│  DirectLLM Provider        │  │ CliAgent Provider        │               │
+│  OpenAI / Anthropic /      │  │ claude-code / aider      │               │
+│  Gemini API 直连            │  │ spawn 子进程              │               │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘               │
 └─────────────────────────────────────────────────────────────────────────┘
-
-         ┌──────────────────┐              ┌──────────────────┐
-         │   CLI Channel    │              │  Feishu Channel   │
-         │                  │              │                   │
-         │  WebSocket client │              │  Feishu WebSocket│
-         │  (TUI 客户端)     │              │  Card rendering   │
-         │  Event passthrough│              │  Image upload    │
-         │                  │              │                   │
-         └────────┬─────────┘              └────────┬──────────┘
-                  │                                 │
-                  └──────────┬──────────────────────┘
-                             │
-                     User (终端 / 飞书)
+         │                        │
+         └───────────┬────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      MCP Tool Server                                     │
+│  current_context / list_sessions / list_providers / send_image           │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 架构图 (Mermaid)
@@ -97,19 +124,15 @@ graph TB
     end
 
     subgraph "Channel Layer"
-        CLI[CLI Channel<br/>WebSocket + TUI]
-        FS[Feishu Channel<br/>WebSocket + Cards]
+        CLI[CLI Channel<br/>WebSocket + TUI<br/>接收消息 + 回传 agent_event 流]
+        FS[Feishu Channel<br/>Feishu WebSocket + Cards<br/>接收消息 + 流式卡片更新]
     end
 
-    subgraph "Gateway"
-        GW[HTTP/WS Server<br/>Message Router]
-        SM[Session Manager<br/>SessionStore + Queue]
-        CS[Command System<br/>Scanner + Executor]
-    end
-
-    subgraph "Orchestration Layer"
-        ORC[AgentOrchestrator<br/>direct / plan / enhance]
-        PIPE[UnifiedDispatchPipeline<br/>Prompt Building + Skill Injection]
+    subgraph "Gateway Core"
+        ROUTER[Message Router<br/>路由: /command 或 自然语言]
+        CS[Command System<br/>Scanner + Executor<br/>含 /session /model /agent 等命令]
+        ORC[Orchestrator<br/>direct / plan / enhance]
+        SS[SessionStore + SessionQueue<br/>基础设施: 持久化 + 串行 dispatch]
     end
 
     subgraph "Agent Provider Layer"
@@ -118,9 +141,10 @@ graph TB
     end
 
     subgraph "Agent Backend Layer"
-        CLP[CodelyCliProvider<br/>ACP Protocol]
-        DLP[DirectLLMProvider<br/>OpenAI / Anthropic / Gemini]
-        CAP[CliAgentProvider<br/>spawn subprocess]
+        CLP[CodelyCli Provider<br/>ACP Protocol<br/>长驻进程 + MCP + Extension]
+        OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 + Tool schema + Plugin]
+        DLP[DirectLLM Provider<br/>后续扩展]
+        CAP[CliAgent Provider<br/>后续扩展]
     end
 
     subgraph "MCP"
@@ -130,23 +154,25 @@ graph TB
     U1 -->|WebSocket| CLI
     U2 -->|Feishu WS| FS
 
-    CLI --> GW
-    FS --> GW
-    GW --> SM
-    GW --> CS
-    GW --> ORC
+    CLI --> ROUTER
+    FS --> ROUTER
 
-    ORC --> PIPE
-    PIPE --> REG
+    ROUTER -->|/command| CS
+    ROUTER -->|自然语言| ORC
+
+    CS --> SS
+    ORC --> SS
+    ORC --> REG
+
     REG --> IAP
 
     IAP --> CLP
-    IAP --> DLP
-    IAP --> CAP
+    IAP --> OCP
+    IAP -.->|后续| DLP
+    IAP -.->|后续| CAP
 
     CLP -.->|MCP stdio| MCP
-    DLP -.->|HTTP API| MCP
-    MCP -.->|HTTP REST| GW
+    MCP -.->|HTTP REST| ROUTER
 ```
 
 ### 消息流程图
@@ -155,19 +181,22 @@ graph TB
 sequenceDiagram
     participant U as User (CLI/Feishu)
     participant CH as Channel
-    participant GW as Gateway
+    participant RT as Message Router
+    participant CMD as Command System
     participant ORC as Orchestrator
     participant PRV as AgentProvider
-    participant BE as Backend (ACP/LLM/CLI)
+    participant BE as Backend (ACP / OpenCode)
 
     U->>CH: Message / Slash Command
-    CH->>GW: Route to Gateway
+    CH->>RT: Route to Gateway
 
-    alt Slash Command
-        GW->>GW: handleCommand()
-        GW-->>CH: command_result
+    alt Slash Command (/session, /model, /agent, /stop, /help, /push ...)
+        RT->>CMD: handleCommand()
+        CMD->>CMD: Execute (节点图引擎 / 内置命令)
+        CMD-->>CH: command_result
+        CH-->>U: Render (Card / TUI)
     else Natural Language
-        GW->>ORC: dispatch(session, message, mode)
+        RT->>ORC: dispatch(session, message, mode)
         ORC->>ORC: Build prompt (skill + context)
         ORC->>PRV: provider.dispatch(prompt, options)
         PRV->>BE: ACP / API / spawn
@@ -181,8 +210,7 @@ sequenceDiagram
 
         BE-->>PRV: Done
         PRV-->>ORC: Complete
-        ORC-->>GW: agent_done
-        GW-->>CH: dispatch_done
+        ORC-->>CH: dispatch_done
         CH-->>U: Finalize
     end
 ```
