@@ -96,13 +96,6 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │ MCP 工具支持          │  │ Tool schema 系统     │                      │
 │  │ Extension 生态        │  │ Plugin 生态           │                      │
 │  └──────────────────────┘  └──────────────────────┘                      │
-│                                                                         │
-│  后续扩展:                                                               │
-│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐               │
-│  DirectLLM Provider        │  │ CliAgent Provider        │               │
-│  OpenAI / Anthropic /      │  │ claude-code / aider      │               │
-│  Gemini API 直连            │  │ spawn 子进程              │               │
-│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘               │
 └─────────────────────────────────────────────────────────────────────────┘
          │                        │
          └───────────┬────────────┘
@@ -143,8 +136,6 @@ graph TB
     subgraph "Agent Backend Layer"
         CLP[CodelyCli Provider<br/>ACP Protocol<br/>长驻进程 + MCP + Extension]
         OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 + Tool schema + Plugin]
-        DLP[DirectLLM Provider<br/>后续扩展]
-        CAP[CliAgent Provider<br/>后续扩展]
     end
 
     subgraph "MCP"
@@ -168,8 +159,6 @@ graph TB
 
     IAP --> CLP
     IAP --> OCP
-    IAP -.->|后续| DLP
-    IAP -.->|后续| CAP
 
     CLP -.->|MCP stdio| MCP
     MCP -.->|HTTP REST| ROUTER
