@@ -20,7 +20,7 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │        (TUI 渲染)       │    │                         │             │
 │  └───────────┬─────────────┘    └───────────┬─────────────┘             │
 └──────────────┼───────────────────────────────┼───────────────────────────┘
-               │           bidirectional        │  bidirectional
+               │         bidirectional          │  bidirectional
                └───────────────┬───────────────┘
                                │
                                ▼
@@ -30,26 +30,43 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  Message Router                                                   │   │
 │  │  /command ──► Command System    自然语言 ──► Orchestrator          │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-│                                                                          │
-│  ┌────────────────────────────────┐  ┌──────────────────────────────┐   │
-│  │  Command System                 │  │  Orchestrator                 │   │
-│  │                                 │  │                               │   │
-│  │  CommandScanner (4级目录扫描)    │  │  AgentOrchestrator            │   │
-│  │  builtin: /session /model       │  │  ├ direct  (直接执行)         │   │
-│  │           /agent /stop /help    │  │  ├ plan    (只读分析规划)      │   │
-│  │  JSON: /push /bump /merge       │  │  └ enhance (技能增强提示词)    │   │
-│  │                                 │  │                               │   │
-│  │  CommandExecutor (节点图引擎)    │  │  UnifiedDispatchPipeline      │   │
-│  │  ├ topo sort, sequential exec   │  │  ├ prompt building (budget)   │   │
-│  │  ├ nodes: agentrun, script,     │  │  ├ skill injection            │   │
-│  │  │  condition, set, loop        │  │  └ AgentEvent stream          │   │
-│  │  └ templates: $args $node.json  │  │                               │   │
-│  │                                 │  │  agentrun 节点回调 ──► pipeline │   │
-│  └────────────────────────────────┘  └──────────────────────────────┘   │
-│                                          │                               │
-│                    ┌─────────────────────┴──────────────────────┐      │
-│                    ▼                                            ▼      │
+│  └───────────────┬──────────────────────────────┬────────────────────┘   │
+│                  │                              │                         │
+│                  ▼                              ▼                        │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │  Command System                                                   │   │
+│  │                                                                  │   │
+│  │  CommandScanner (4级目录扫描)                                      │   │
+│  │  builtin: /session /model /agent /stop /help                      │   │
+│  │  JSON:    /push /bump /merge                                      │   │
+│  │                                                                  │   │
+│  │  CommandExecutor (节点图引擎)                                      │   │
+│  │  ├ topo sort, sequential exec                                     │   │
+│  │  ├ nodes: agentrun, script, condition, set, loop                  │   │
+│  │  ├ templates: $args $node.id.json.field                            │   │
+│  │  │                                                                │   │
+│  │  └─ agentrun 节点 ──► 回调下方 Orchestrator                        │   │
+│  │                                                                  │   │
+│  └──────────────────────────────┬───────────────────────────────────┘   │
+│                                 │                                        │
+│                                 │ agentrun 节点回调                       │
+│                                 ▼                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │  Orchestrator                                                    │   │
+│  │                                                                  │   │
+│  │  AgentOrchestrator                                               │   │
+│  │  ├ direct  (直接执行)                                             │   │
+│  │  ├ plan    (只读分析规划)                                          │   │
+│  │  └ enhance (技能增强提示词)                                        │   │
+│  │                                                                  │   │
+│  │  UnifiedDispatchPipeline                                         │   │
+│  │  ├ prompt building (budget-aware)                                │   │
+│  │  ├ skill injection                                               │   │
+│  │  └ AgentEvent stream production                                  │   │
+│  └──────────────────────────────┬───────────────────────────────────┘   │
+│                                 │                                        │
+│                ┌────────────────┴────────────────┐                     │
+│                ▼                                 ▼                      │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │  Infrastructure (shared by Command + Orchestrator + MCP)         │  │
 │  │                                                                  │  │
@@ -58,18 +75,18 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │  └ providerSessionId cache (from Backend)                        │  │
 │  │  SessionQueue: serial dispatch, max 10 queued                     │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
-│                    │                                                   │
-│                    │ createSession /                                   │
-│                    │ resumeSession                                     │
-│                    ▼                                                   │
+│                                 │                                       │
+│                                 │ createSession /                       │
+│                                 │ resumeSession                         │
+│                                 ▼                                       │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │  MCP Tool Server (Gateway sidecar)                                │  │
 │  │  current_context, list_sessions, list_providers, send_image       │  │
 │  │  stdio ──► Agent Backend    HTTP REST ──► Gateway Core             │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
-                    │
-                    ▼
+                                 │
+                                 ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                  Agent Provider Layer (Abstraction)                      │
 │                                                                          │
@@ -90,9 +107,9 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │                               │  │                               │      │
 │  │  ACP Protocol (JSON-RPC)      │  │  OpenCode Protocol            │      │
 │  │  persistent process           │  │  Effect.js service            │      │
-│  │  --resume-session             │  │  SessionV2 API + SessionRunner│     │
-│  │  session: auto-saves          │  │  session: SQLite + event src   │     │
-│  │  MCP + Extension ecosystem    │  │  Tool schema + Plugin ecosystem│     │
+│  │  --resume-session             │  │  SessionV2 API + SessionRunner│      │
+│  │  session: auto-saves          │  │  session: SQLite + event src   │      │
+│  │  MCP + Extension ecosystem    │  │  Tool schema + Plugin ecosystem│      │
 │  └──────────┬───────────────────┘  └──────────┬───────────────────┘      │
 │             │                                  │                          │
 │             │ providerSessionId returned       │ providerSessionId returned│
