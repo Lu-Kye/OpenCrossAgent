@@ -20,8 +20,7 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │        (TUI 渲染)       │    │                         │             │
 │  └───────────┬─────────────┘    └───────────┬─────────────┘             │
 └──────────────┼───────────────────────────────┼───────────────────────────┘
-               │               ↕               │  ↕
-               └───────────────┬───────────────┘
+                               ▲
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -117,11 +116,6 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │                        │                                                  │
 │             AgentEvent stream ──► IAgentProvider                           │
 └─────────────────────────────────────────────────────────────────────────┘
-             │                                  │
-             └──────────┬───────────────────────┘
-                        │ stdio
-                        ▼
-                  MCP Tool Server (sidecar in Gateway Core)
 ```
 
 ## License
