@@ -20,7 +20,7 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │        (TUI 渲染)       │    │                         │             │
 │  └───────────┬─────────────┘    └───────────┬─────────────┘             │
 └──────────────┼───────────────────────────────┼───────────────────────────┘
-               │         bidirectional          │  bidirectional
+               │               ↕               │  ↕
                └───────────────┬───────────────┘
                                │
                                ▼
@@ -45,11 +45,11 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │  ├ nodes: agentrun, script, condition, set, loop                  │   │
 │  │  ├ templates: $args $node.id.json.field                            │   │
 │  │  │                                                                │   │
-│  │  └─ agentrun 节点 ──► 回调下方 Orchestrator                        │   │
+│  │  └─ agentrun 节点 ──► Orchestrator                                │   │
 │  │                                                                  │   │
 │  └──────────────────────────────┬───────────────────────────────────┘   │
 │                                 │                                        │
-│                                 │ agentrun 节点回调                       │
+│                                 │                                        │
 │                                 ▼                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  Orchestrator                                                    │   │
