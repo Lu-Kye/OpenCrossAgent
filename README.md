@@ -11,28 +11,28 @@ graph TB
         U2[Feishu User]
     end
 
-    subgraph ChannelLayer["Channel Layer"]
-        CLI["CLI Channel<br/>WebSocket (localhost)<br/>接收: user_input / slash_command<br/>回传: agent_event 流 (TUI 渲染)"]
-        FS["Feishu Channel<br/>Feishu WebSocket<br/>接收: 飞书消息 / @bot<br/>回传: 流式卡片更新"]
+    subgraph ChannelLayer [Channel Layer]
+        CLI[CLI Channel<br/>WebSocket localhost<br/>recv: user_input, slash_command<br/>send: agent_event stream TUI]
+        FS[Feishu Channel<br/>Feishu WebSocket<br/>recv: Feishu msg, @bot<br/>send: streaming card updates]
     end
 
-    subgraph GatewayCore["Gateway Core"]
-        ROUTER["Message Router<br/>/command → Command System<br/>自然语言 → Orchestrator"]
-        CS["Command System<br/>CommandScanner (4级目录扫描)<br/>内置: /session /model /agent /stop /help<br/>JSON-defined: /push /bump /merge"]
-        EXEC["CommandExecutor (节点图引擎)<br/>拓扑排序 → 顺序执行<br/>节点: agentrun / script / condition / set / loop<br/>模板: \{\{ $args \}\} \{\{ $node.id.json.field \}\}"]
-        ORC["Orchestrator<br/>AgentOrchestrator: direct / plan / enhance<br/>UnifiedDispatchPipeline<br/>prompt building + skill injection"]
-        INFRA["Infrastructure<br/>SessionStore: 持久化 + providerSessionId 映射<br/>SessionQueue: 串行 dispatch (max 10)<br/>共享: Command + Orchestrator + MCP"]
-        MCP["MCP Tool Server (sidecar)<br/>current_context / list_sessions<br/>list_providers / send_image"]
+    subgraph GatewayCore [Gateway Core]
+        ROUTER[Message Router<br/>/command - to - Command System<br/>natural lang - to - Orchestrator]
+        CS[Command System<br/>CommandScanner 4-level scan<br/>builtin: /session /model /agent /stop /help<br/>JSON: /push /bump /merge]
+        EXEC[CommandExecutor Node Graph Engine<br/>topological sort, sequential exec<br/>nodes: agentrun, script, condition, set, loop]
+        ORC[Orchestrator<br/>AgentOrchestrator: direct, plan, enhance<br/>UnifiedDispatchPipeline<br/>prompt building + skill injection]
+        INFRA[Infrastructure<br/>SessionStore: persist + providerSessionId map<br/>SessionQueue: serial dispatch max 10<br/>shared by Command, Orchestrator, MCP]
+        MCP[MCP Tool Server sidecar<br/>current_context, list_sessions<br/>list_providers, send_image]
     end
 
-    subgraph ProviderLayer["Agent Provider Layer"]
-        REG["ProviderRegistry<br/>register / get / resolve"]
-        IAP["IAgentProvider Interface<br/>dispatch → AsyncGenerator&lt;AgentEvent&gt;<br/>listModels / createSession / resumeSession"]
+    subgraph ProviderLayer [Agent Provider Layer]
+        REG[ProviderRegistry<br/>register, get, resolve]
+        IAP[IAgentProvider Interface<br/>dispatch - AsyncGenerator AgentEvent<br/>listModels, createSession, resumeSession]
     end
 
-    subgraph BackendLayer["Agent Backend Layer"]
-        CLP["CodelyCli Provider<br/>ACP Protocol (JSON-RPC)<br/>长驻进程 + --resume-session<br/>MCP + Extension 生态"]
-        OCP["OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 API + SessionRunner<br/>Tool schema + Plugin 生态"]
+    subgraph BackendLayer [Agent Backend Layer]
+        CLP[CodelyCli Provider<br/>ACP Protocol JSON-RPC<br/>persistent process, --resume-session<br/>MCP + Extension ecosystem]
+        OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 API + SessionRunner<br/>Tool schema + Plugin ecosystem]
     end
 
     U1 -->|WebSocket| CLI
@@ -43,8 +43,8 @@ graph TB
 
     ROUTER -->|/command| CS
     CS --> EXEC
-    EXEC -->|agentrun 节点回调| ORC
-    ROUTER -->|自然语言| ORC
+    EXEC -->|agentrun callback| ORC
+    ROUTER -->|natural lang| ORC
 
     CS --> INFRA
     ORC --> INFRA
