@@ -21,18 +21,18 @@ graph TB
         CS[Command System<br/>CommandScanner 4-level scan<br/>builtin: /session /model /agent /stop /help<br/>JSON: /push /bump /merge]
         EXEC[CommandExecutor Node Graph Engine<br/>topological sort, sequential exec<br/>nodes: agentrun, script, condition, set, loop]
         ORC[Orchestrator<br/>AgentOrchestrator: direct, plan, enhance<br/>UnifiedDispatchPipeline<br/>prompt building + skill injection]
-        INFRA[Infrastructure<br/>SessionStore: persist + providerSessionId map<br/>SessionQueue: serial dispatch max 10<br/>shared by Command, Orchestrator, MCP]
+        INFRA[Infrastructure<br/>SessionStore: session name, workspaceDir, channel binding<br/>providerSessionId cache from Backend<br/>SessionQueue: serial dispatch max 10]
         MCP[MCP Tool Server sidecar<br/>current_context, list_sessions<br/>list_providers, send_image]
     end
 
     subgraph ProviderLayer [Agent Provider Layer - Abstraction]
         REG[ProviderRegistry<br/>register, get, resolve]
-        IAP[IAgentProvider Interface<br/>dispatch - AsyncGenerator AgentEvent<br/>listModels, createSession, resumeSession<br/>stopSession, dispose]
+        IAP[IAgentProvider Interface<br/>dispatch - AsyncGenerator AgentEvent<br/>createSession, resumeSession, stopSession<br/>listModels, dispose]
     end
 
     subgraph BackendLayer [Agent Backend Layer - Implementations]
-        CLP[CodelyCli Provider<br/>ACP Protocol JSON-RPC<br/>persistent process, --resume-session<br/>MCP + Extension ecosystem]
-        OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 API + SessionRunner<br/>Tool schema + Plugin ecosystem]
+        CLP[CodelyCli Provider<br/>ACP Protocol JSON-RPC<br/>persistent process, --resume-session<br/>session persistence: auto-saves<br/>MCP + Extension ecosystem]
+        OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 API + SessionRunner<br/>session persistence: SQLite + event sourcing<br/>Tool schema + Plugin ecosystem]
     end
 
     U1 -->|WebSocket| CLI
@@ -49,6 +49,11 @@ graph TB
     CS --> INFRA
     ORC --> INFRA
     MCP --> INFRA
+
+    INFRA -.->|createSession / resumeSession| IAP
+    CLP -->|providerSessionId returned| INFRA
+    OCP -->|providerSessionId returned| INFRA
+
     ORC --> REG
 
     REG -->|resolve| IAP
