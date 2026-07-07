@@ -25,12 +25,12 @@ graph TB
         MCP[MCP Tool Server sidecar<br/>current_context, list_sessions<br/>list_providers, send_image]
     end
 
-    subgraph ProviderLayer [Agent Provider Layer]
+    subgraph ProviderLayer [Agent Provider Layer - Abstraction]
         REG[ProviderRegistry<br/>register, get, resolve]
-        IAP[IAgentProvider Interface<br/>dispatch - AsyncGenerator AgentEvent<br/>listModels, createSession, resumeSession]
+        IAP[IAgentProvider Interface<br/>dispatch - AsyncGenerator AgentEvent<br/>listModels, createSession, resumeSession<br/>stopSession, dispose]
     end
 
-    subgraph BackendLayer [Agent Backend Layer]
+    subgraph BackendLayer [Agent Backend Layer - Implementations]
         CLP[CodelyCli Provider<br/>ACP Protocol JSON-RPC<br/>persistent process, --resume-session<br/>MCP + Extension ecosystem]
         OCP[OpenCode Provider<br/>OpenCode Protocol<br/>SessionV2 API + SessionRunner<br/>Tool schema + Plugin ecosystem]
     end
@@ -51,10 +51,13 @@ graph TB
     MCP --> INFRA
     ORC --> REG
 
-    REG --> IAP
+    REG -->|resolve| IAP
 
-    IAP --> CLP
-    IAP --> OCP
+    IAP -.->|implements| CLP
+    IAP -.->|implements| OCP
+
+    CLP -->|AgentEvent stream| IAP
+    OCP -->|AgentEvent stream| IAP
 
     CLP -.->|stdio| MCP
     MCP -.->|HTTP REST| ROUTER
