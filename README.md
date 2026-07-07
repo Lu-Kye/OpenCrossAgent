@@ -81,12 +81,21 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │  │  ├ prompt building (budget-aware)                                │   │
 │  │  │  ├ skill injection                                               │   │
 │  │  │  └ AgentEvent stream production                                  │   │
+│  │  └──────────────────────────────┬───────────────────────────────────┘   │
+│  │                                 │                                     │
+│  │  ┌──────────────────────────────▼──────────────────────────────────┐   │
+│  │  │  Infrastructure (共享基础设施)                                    │   │
 │  │  │                                                                  │   │
-│  │  │  SessionStore + SessionQueue (基础设施)                            │   │
+│  │  │  SessionStore                                                    │   │
 │  │  │  ├ session 持久化 (~/.opencross/)                                 │   │
 │  │  │  ├ providerSessionId 映射                                        │   │
 │  │  │  └ resume-session 续接                                           │   │
-│  │  └──────────────────────────────┬───────────────────────────────────┘   │
+│  │  │                                                                  │   │
+│  │  │  SessionQueue                                                     │   │
+│  │  │  └ 串行 dispatch (max 10 排队)                                    │   │
+│  │  │                                                                  │   │
+│  │  │  使用者: Command System + Orchestrator + MCP Tool Server         │   │
+│  │  └──────────────────────────────────────────────────────────────────┘   │
 │  │                                 │                                     │
 │  │  ┌──────────────────────────────▼──────────────────────────────────┐│
 │  │  │  MCP Tool Server (Gateway sidecar)                               ││
@@ -160,7 +169,7 @@ graph TB
         CS[Command System<br/>Scanner + Executor<br/>含 /session /model /agent 等命令]
         EXEC[CommandExecutor<br/>节点图引擎<br/>agentrun → 回调 Orchestrator<br/>script / condition / set / loop]
         ORC[Orchestrator<br/>direct / plan / enhance]
-        SS[SessionStore + SessionQueue<br/>基础设施: 持久化 + 串行 dispatch]
+        INFRA[Infrastructure<br/>SessionStore + SessionQueue<br/>共享: Command + Orchestrator + MCP]
         MCP[MCP Tool Server sidecar<br/>context / sessions / providers<br/>← stdio → Backend<br/>→ HTTP REST → Gateway]
     end
 
@@ -185,8 +194,9 @@ graph TB
     EXEC -->|agentrun 节点回调| ORC
     ROUTER -->|自然语言| ORC
 
-    CS --> SS
-    ORC --> SS
+    CS --> INFRA
+    ORC --> INFRA
+    MCP --> INFRA
     ORC --> REG
 
     REG --> IAP
