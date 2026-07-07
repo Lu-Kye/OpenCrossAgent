@@ -38,8 +38,8 @@ graph TB
     U1 -->|WebSocket| CLI
     U2 -->|Feishu WS| FS
 
-    CLI --> ROUTER
-    FS --> ROUTER
+    CLI <-->|user msg up / agent_event down| ROUTER
+    FS <-->|Feishu msg up / card update down| ROUTER
 
     ROUTER -->|/command| CS
     CS --> EXEC
