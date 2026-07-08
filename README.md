@@ -54,9 +54,7 @@ Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 │  │  Orchestrator                                                    │   │
 │  │                                                                  │   │
 │  │  AgentOrchestrator                                               │   │
-│  │  ├ direct  (直接执行)                                             │   │
-│  │  ├ plan    (只读分析规划)                                          │   │
-│  │  └ enhance (技能增强提示词)                                        │   │
+│  │  └ direct  (直接执行)                                             │   │
 │  │                                                                  │   │
 │  │  UnifiedDispatchPipeline                                         │   │
 │  │  ├ prompt building (budget-aware)                                │   │
