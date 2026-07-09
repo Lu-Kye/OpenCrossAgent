@@ -2,7 +2,7 @@
 
 > 本文档定义 OpenCrossAgent 各层导出的公共接口、类型签名和调用方式。
 > 供 LLM 编写依赖某模块的其他模块时查阅，实现接口复用。
-> 架构设计见 [OCA-ARCH.md](./OCA-ARCH.md)，开发规范见 [OCA-DEV.md](./OCA-DEV.md)，项目规则见 [OCA-RULE.md](./OCA-RULE.md)。
+> 架构设计见 [OCA-ARCH.md](./OCA-ARCH.md)，功能清单见 [OCA-FEATURE.md](./OCA-FEATURE.md)，项目规则见 [OCA-RULE.md](./OCA-RULE.md)。
 
 ## Channel Layer (`channel/`)
 
@@ -413,6 +413,13 @@ type AgentEvent =
   | { type: 'error'; message: string; code?: string }
   | { type: 'session_created'; sessionId: string }
   | { type: 'done'; summary?: string }
+  | { type: 'progress'; message: string }
+  | { type: 'idle_warning'; message: string }
+  | { type: 'agent_start'; sessionId: string }
+  | { type: 'agent_finish'; summary?: string }
+  | { type: 'usage_update'; inputTokens: number; outputTokens: number }
+  | { type: 'plan'; steps: string[] }
+  | { type: 'tool_streaming'; toolName: string; chunk: string }
 
 /** 事件流类型 */
 type AgentEventStream = AsyncGenerator<AgentEvent>
@@ -462,11 +469,26 @@ type AgentEventStream = AsyncGenerator<AgentEvent>
 interface GatewayConfig {
   port: number
   host: string
+  channels: ChannelsConfig
   providers: ProviderConfig[]
   defaultProvider: string
   skillsDir: string
   commandsDir: string
   logDir: string
+}
+
+interface ChannelsConfig {
+  feishu?: FeishuChannelConfig
+  cli: { enabled: boolean }
+}
+
+interface FeishuChannelConfig {
+  enabled: boolean
+  appId: string
+  appSecret: string
+  verificationToken?: string
+  encryptKey?: string
+  maxConcurrentPerChat: number
 }
 
 interface ProviderConfig {
@@ -486,6 +508,8 @@ interface ProviderConfig {
 ### `types/common.ts`
 
 ```typescript
+type ChannelType = 'cli' | 'feishu'
+
 interface ModelInfo {
   id: string
   name: string

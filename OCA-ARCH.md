@@ -1,7 +1,7 @@
 # OCA-ARCH — 工程架构设计
 
 > 本文档定义 OpenCrossAgent 的四层架构、目录结构和依赖方向。
-> 开发规范见 [OCA-DEV.md](./OCA-DEV.md)，接口契约见 [OCA-API.md](./OCA-API.md)，项目规则见 [OCA-RULE.md](./OCA-RULE.md)。
+> 功能清单见 [OCA-FEATURE.md](./OCA-FEATURE.md)，接口契约见 [OCA-API.md](./OCA-API.md)，项目规则见 [OCA-RULE.md](./OCA-RULE.md)。
 
 ## 背景与目的
 
@@ -9,23 +9,30 @@ OpenCrossAgent 是一个跨 Agent 编排网关，支持多渠道接入（CLI + F
 
 项目刚起步（仅有 README + .gitignore + LICENSE），需要设计工程目录结构来指导后续开发。参考 TeamCodelyClaw 项目的成熟实践（pnpm monorepo + tsdown + vitest + ESM），结合 OpenCrossAgent 自身特点（显式 Provider 抽象 + 多 Backend 实现）进行设计。
 
-## 核心需求
+## 架构设计约束
 
 - 按 README 四层架构划分目录，每层边界清晰
-- 3 个顶层 package：gateway（网关核心）、clients/cli（终端 TUI 客户端）、installer（安装器）
 - gateway 内部四层通过目录划分，不拆子 package
-- 每个目录说明 Why / What / When，指导开发者快速定位
-- 依赖方向清晰：`channel → core → provider ← backend`（backend 实现 provider 接口，不直接被 core 引用）
-- clients/ 目录预留多 client 扩展能力（cli / desktop-app / mobile-app）
+- 依赖方向：`channel → core → provider ← backend`（backend 实现 provider 接口，不直接被 core 引用）
+- clients/ 目录预留多 client 扩展能力
 
-## 成功标准
+功能清单和状态见 [OCA-FEATURE.md](./OCA-FEATURE.md)。
 
-- 开发者看目录树即可理解四层架构边界
-- 新增一个 Channel（如 Webhook）时，只需在 `channel/` 下新增子目录，不碰其他层
-- 新增一个 Backend（如 Claude Code）时，只需在 `backend/` 下新增子目录 + 实现 IAgentProvider
-- 新增一个 Command 时，只需放 JSON 文件到 `commands/`，不碰代码
-- 新增一个 Skill 时，只需放 .md 文件到 `skills/`，不碰代码
-- 新增一个 Client（如 desktop-app）时，只需在 `clients/` 下新增子目录
+## 技术栈
+
+| 维度 | 选型 | 说明 |
+|------|------|------|
+| 语言 | TypeScript (>= 5.5) | target: es2023, strict: true |
+| 运行时 | Node.js >= 22 | gateway/installer; clients/cli 用 bun 运行 |
+| 包管理 | pnpm workspaces | monorepo，3 个顶层 package |
+| 构建 — gateway | tsdown (rolldown-based) | 3 entries + codeSplitting + onSuccess asset copy |
+| 构建 — clients/cli | bun build | externalize native modules (@opentui/core-*) |
+| 构建 — installer | tsdown | 单 entry |
+| 模块系统 | ESM + NodeNext | module: NodeNext, moduleResolution: NodeNext |
+| 测试 | vitest | *.test.ts 就近放置 |
+| 包 scope | @oca/* | OpenCrossAgent 缩写 |
+
+构建命令和产物结构见 [OCA-FEATURE.md](./OCA-FEATURE.md) §构建概览。
 
 ## 目录总览
 

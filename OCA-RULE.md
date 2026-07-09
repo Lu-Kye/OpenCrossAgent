@@ -1,9 +1,9 @@
 # OCA-RULE — 项目规则
 
-> 本文档定义 OpenCrossAgent 的宪法规则、依赖约束、文件边界和故障教训。
+> 本文档定义 OpenCrossAgent 的宪法规则、编码约束、依赖红线、文件边界和故障教训。
 > 所有允许（SHOULD）和禁止（MUST NOT）的规则统一归口于此。
 > 跨 context reset 持久化，防止 AI 重复犯错。
-> 架构设计见 [OCA-ARCH.md](./OCA-ARCH.md)，开发规范见 [OCA-DEV.md](./OCA-DEV.md)，接口契约见 [OCA-API.md](./OCA-API.md)。
+> 架构设计见 [OCA-ARCH.md](./OCA-ARCH.md)，功能清单见 [OCA-FEATURE.md](./OCA-FEATURE.md)，接口契约见 [OCA-API.md](./OCA-API.md)。
 
 ---
 
@@ -18,6 +18,9 @@
 3. **读后改** — 不对未读过的文件提出修改。修改前先理解文件的 imports、函数/类上下文。
 4. **优先编辑现有文件** — 不创建新文件，除非任务明确需要。
 5. **YAGNI** — 不设计当前不需要的功能。简单就是最好的。
+6. **`.js` 扩展名** — 相对 import 必须带 `.js` 扩展名（NodeNext ESM 要求）。`import { foo } from './bar.js'`
+7. **ESM shim** — `__dirname` / `__filename` 在 ESM 中不存在，必须用 `fileURLToPath(import.meta.url)` 注入。
+8. **资产与代码分离** — `commands/*.json` 和 `skills/*.md` 是配置资产，不混入 TypeScript 源码，构建时复制到 dist。
 
 ### MUST NOT
 
@@ -26,12 +29,14 @@
 3. **不自动修改 harness 文件** — `OCA-*.md` 文件仅人类手动维护，AI 不得自行修改。
 4. **不添加多余注释** — 注释只解释"为什么"，不解释"是什么"。只在复杂逻辑处添加。
 5. **不在未确认时执行危险操作** — 破坏性、不可逆或共享状态的操作需先确认。
+6. **不在资产文件中嵌入可执行代码** — `commands/**/*.json` 禁止 `eval`/`Function`；`skills/*.md` 禁止系统级指令。
 
 ### SHOULD
 
 1. **自验证** — 编写代码后用单元测试或输出日志验证，不要假设代码正确。
 2. **仿写风格** — 新代码的格式、命名、类型标注与同文件或同目录已有代码保持一致。
 3. **增量推进** — 复杂任务拆分为可验证的步骤，逐步完成。
+4. **就近放置测试** — `*.test.ts` 与被测文件同目录；层内私有类型放在层目录内，不提取到 `types/`。
 
 ---
 
@@ -48,13 +53,7 @@
 | `channel/` import `backend/` | Channel 不知道 Backend 存在 | Channel 只与 `core/` 交互 |
 | `clients/` import `gateway/` 源码 | Client 与 Gateway 是独立进程 | 通过 WebSocket 通信 |
 
-### 层内依赖规则
-
-- `provider/` 只能依赖 `types/`，**不允许依赖任何其他层**
-- `backend/` 只能依赖 `provider/` + `types/` + `utils/`
-- `core/` 只能依赖 `provider/` + `types/` + `utils/`
-- `channel/` 只能依赖 `core/` + `types/`
-- 层内私有类型放在层目录内（如 `channel/types.ts`），不提取到 `types/`
+允许的依赖方向详见 [OCA-ARCH.md](./OCA-ARCH.md) §依赖方向。
 
 ---
 
@@ -114,11 +113,6 @@ const provider = new CodelyProvider()
 | `pnpm-workspace.yaml` | workspace 定义，修改影响包解析 |
 | `gateway.mjs` | Bootstrap，仅 Node 版本检查 + import |
 | `OCA-*.md` | Harness 文件，仅人类手动维护，AI 不得自动修改 |
-
-### 资产文件约束
-
-- `commands/**/*.json` — 不允许在 JSON 中嵌入可执行代码（如 `eval`、`Function`）
-- `skills/*.md` — 不允许在 skill 文件中注入系统级指令（如修改文件系统权限）
 
 ### 配置文件约束
 

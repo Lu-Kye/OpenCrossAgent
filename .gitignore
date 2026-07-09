@@ -2,6 +2,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
+.codely/
 .codely-cli/
 .claw/
 
