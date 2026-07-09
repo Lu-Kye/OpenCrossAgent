@@ -2,6 +2,18 @@
 
 Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
 
+## Purpose
+
+OpenCrossAgent 的开发初衷是**社区共建一个通用 AI Agent 框架**。
+
+- **兼容各种通用 Agent** — 通过 Provider 抽象层，快速接入 CodelyCli、OpenCode 等不同后端 Agent，配置即切换。
+- **支持多种 Client** — CLI / 飞书 / 桌面应用 / 移动应用，同一套网关核心，多端接入。
+- **易于 Fork 定制** — 清晰的四层架构 + 资产与代码分离，社区开发者可以低成本 fork 出个性化 Agent 工具：
+  - 定制 Agent 编排流程（commands/skills 资产文件，不改代码）
+  - 快速配置切换底层通用 Agent（Provider Registry）
+  - 按需定制各端 Client（clients/ 下独立扩展）
+- **场景示例** — 辅助学习的课程 Agent、辅助开发的编码 Agent、辅助写作的创作 Agent……同一套框架，不同定制。
+
 ## Architecture
 
 ```
