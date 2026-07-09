@@ -1,6 +1,7 @@
 packages:
   - 'gateway'
   - 'clients/cli'
+  - 'clients/feishu'
   - 'installer'
 allowBuilds:
   esbuild: true

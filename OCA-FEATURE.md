@@ -9,6 +9,7 @@
 |------|------|---------|
 | gateway/ | @oca/oca-gateway | oca-gateway |
 | clients/cli/ | @oca/oca-cli | oca-cli |
+| clients/feishu/ | @oca/oca-feishu | oca-feishu |
 | installer/ | @oca/oca-installer | oca-installer |
 
 ## 项目功能清单
@@ -17,9 +18,9 @@
 
 | 功能 | 状态 | 说明 |
 |------|------|------|
-| HTTP + WebSocket 服务器 | 📋 计划中 | 网关服务入口，提供 REST API 和 CLI WebSocket |
-| CLI Channel | 📋 计划中 | localhost WebSocket 服务器，对接 oca-cli |
-| Feishu Channel | 📋 计划中 | 飞书 WebSocket 长连接 + 卡片渲染 + 流式更新 |
+| HTTP + WebSocket 服务器 | 📋 计划中 | 网关服务入口，提供 REST API 和 WebSocket 端点 |
+| CLI Channel | 📋 计划中 | Thin WebSocket handler (/ws/cli)，对接 oca-cli |
+| Feishu Channel | 📋 计划中 | Thin WebSocket handler (/ws/feishu)，对接 oca-feishu |
 | Agent Orchestrator | 📋 计划中 | 自然语言 → Provider 调度（最小版，不含 prompt-builder/skill-injector） |
 | Command System | ❌ 不实现 | 用户后续重新架构 |
 | MCP Tool Server | 📋 计划中 | 最小框架 + current_context 工具 |
@@ -36,6 +37,10 @@
 | Vim 模式 | 📋 计划中 | insert/normal/visual/command |
 | WebSocket 重连 | 📋 计划中 | 指数退避 + jitter |
 | Slash 命令 | 📋 计划中 | /theme /model /vim /spinner /stop |
+| 飞书客户端 (oca-feishu) | 📋 计划中 | 飞书 WebSocket 长连接 + 卡片渲染 + 流式更新 |
+| 飞书卡片构建 | 📋 计划中 | AgentEvent → 飞书卡片 JSON |
+| 流式卡片更新 | 📋 计划中 | rate-limited 批量更新 |
+| 图片上传发送 | 📋 计划中 | 飞书图片 API |
 
 ### Installer 功能
 
@@ -50,11 +55,17 @@
 ```
 用户终端
 ├── oca-cli               → TUI 进程 (bun/node)
-│   │                       │ WebSocket ws://127.0.0.1:PORT
+│   │                       │ WebSocket ws://127.0.0.1:PORT/ws/cli
+│   └───────────────────────┤
+│                           ▼
+├── oca-feishu             → 飞书监听进程 (node)
+│   │  飞书平台 ←WebSocket   │ WebSocket ws://127.0.0.1:PORT/ws/feishu
 │   └───────────────────────┤
 │                           ▼
 ├── oca-gateway start      → Gateway 进程 (node)
 │                           ├── HTTP + WS Server
+│                           │     ├── /ws/cli ← oca-cli
+│                           │     └── /ws/feishu ← oca-feishu
 │                           ├── MCP Server (stdio sidecar)
 │                           └── codely-cli (子进程)
 │
@@ -63,7 +74,7 @@
 
 ## 版本管理
 
-- 统一版本号：三个 package 同步 bump
+- 统一版本号：四个 package 同步 bump
 - 当前阶段：暂不发布，仅本地构建
 - 未来开启发布时配置 publishConfig.registry
 
@@ -79,6 +90,7 @@ pnpm -r build
 # 单独构建
 pnpm --filter @oca/oca-gateway build
 pnpm --filter @oca/oca-cli build
+pnpm --filter @oca/oca-feishu build
 pnpm --filter @oca/oca-installer build
 
 # 本地开发
@@ -111,3 +123,4 @@ pnpm dev          # 一键启动 gateway + cli
 ```
 
 运行时配置生成到 `~/.oca/gateway.json`，由 `oca-installer` 或 `oca-gateway setup` 创建。
+飞书配置 (`appId`, `appSecret`) 由 `oca-feishu` 读取 `~/.oca/gateway.json` 获取。

@@ -1,6 +1,6 @@
 # OpenCrossAgent
 
-Cross-agent orchestration gateway with multi-channel support (CLI + Feishu).
+Cross-agent orchestration gateway with multi-channel support (CLI + Feishu + extensible clients).
 
 ## Purpose
 
@@ -21,15 +21,15 @@ OpenCrossAgent 的开发初衷是**社区共建一个通用 AI Agent 框架**。
 │                          Channel Layer                                   │
 │                                                                          │
 │  对接前端：接收用户消息 + 回传 agent 执行过程中的事件给前端渲染            │
+│  所有 channel 都是 thin WebSocket relay，渲染逻辑在各自 client 中          │
 │                                                                          │
 │  ┌─────────────────────────┐    ┌─────────────────────────┐             │
-│  │   CLI Channel           │    │   Feishu Channel        │             │
-│  │                         │    │                         │             │
-│  │  WebSocket (localhost)  │    │  Feishu WebSocket       │             │
-│  │  recv: user_input,     │    │  recv: 飞书消息, @bot    │             │
-│  │        slash_command    │    │  send: 流式卡片更新      │             │
-│  │  send: agent_event 流  │    │                         │             │
-│  │        (TUI 渲染)       │    │                         │             │
+│  │   CLI Channel            │    │   Feishu Channel         │             │
+│  │   (thin WS relay)        │    │   (thin WS relay)       │             │
+│  │  /ws/cli                 │    │  /ws/feishu             │             │
+│  │  ← oca-cli (TUI)         │    │  ← oca-feishu           │             │
+│  │  recv: user_input       │    │  recv: user_input       │             │
+│  │  send: agent_event 流   │    │  send: agent_event 流   │             │
 │  └───────────┬─────────────┘    └───────────┬─────────────┘             │
 └──────────────┼───────────────────────────────┼───────────────────────────┘
                                ▲

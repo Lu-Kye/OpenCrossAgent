@@ -52,6 +52,7 @@
 | `channel/` import `provider/` | Channel 不直接调度 Agent | Channel 通过 `core/router.ts` 路由 |
 | `channel/` import `backend/` | Channel 不知道 Backend 存在 | Channel 只与 `core/` 交互 |
 | `clients/` import `gateway/` 源码 | Client 与 Gateway 是独立进程 | 通过 WebSocket 通信 |
+| `clients/feishu/` import `clients/cli/` 源码 | Client 之间完全隔离 | 各自独立实现 |
 
 允许的依赖方向详见 [OCA-ARCH.md](./OCA-ARCH.md) §依赖方向。
 

@@ -62,15 +62,12 @@ OpenCrossAgent/
 │       ├── cli.ts               # CLI management (start/stop/restart/status)
 │       │
 │       ├── channel/             # ─── Channel Layer ───
-│       │   ├── types.ts         # IChannel, IChannelBridge, IChannelRenderer
-│       │   ├── cli/             # CLI Channel (WebSocket localhost)
+│       │   ├── types.ts         # IChannel, IChannelBridge (thin WebSocket relay)
+│       │   ├── cli/             # CLI Channel (thin WebSocket handler at /ws/cli)
 │       │   │   ├── cli-channel.ts
 │       │   │   └── cli-ws-server.ts
-│       │   └── feishu/          # Feishu Channel (Feishu WebSocket)
-│       │       ├── feishu-channel.ts
-│       │       ├── feishu-client.ts
-│       │       ├── feishu-card.ts
-│       │       └── card-updater.ts
+│       │   └── feishu/          # Feishu Channel (thin WebSocket handler at /ws/feishu)
+│       │       └── feishu-channel.ts   # relay only — card rendering 在 clients/feishu/
 │       │
 │       ├── core/                # ─── Gateway Core ───
 │       │   ├── router.ts        # Message Router: /command → Command, 自然语言 → Orchestrator
@@ -141,19 +138,31 @@ OpenCrossAgent/
 │           └── process.ts                 # Process lifecycle helpers
 │
 ├── clients/                      # 所有 client 的父目录
-│   └── cli/                      # @oca/oca-cli — TUI 客户端
-│       ├── package.json          # bin: { "oca-cli": "./dist/main.js" }
+│   ├── cli/                      # @oca/oca-cli — TUI 客户端
+│   │   ├── package.json          # bin: { "oca-cli": "./dist/main.js" }
+│   │   ├── tsconfig.json
+│   │   ├── build.ts              # bun build (externalize native modules)
+│   │   ├── vitest.config.ts
+│   │   └── src/
+│   │       ├── main.tsx          # Entry point
+│   │       ├── App.tsx           # Root component (REPL)
+│   │       ├── ws-client.ts      # WebSocket reconnect client → gateway
+│   │       ├── commands.ts       # Client-side slash command handling
+│   │       ├── theme/            # Theme system (JSON themes)
+│   │       ├── components/       # UI components (InputBar, StatusBar, MessageView...)
+│   │       └── hooks/             # React hooks
+│   │
+│   └── feishu/                   # @oca/oca-feishu — 飞书客户端
+│       ├── package.json          # bin: { "oca-feishu": "./dist/main.js" }
 │       ├── tsconfig.json
-│       ├── build.ts              # bun build (externalize native modules)
-│       ├── vitest.config.ts
+│       ├── tsdown.config.ts      # tsdown (单 entry, Node.js service)
 │       └── src/
-│           ├── main.tsx          # Entry point
-│           ├── App.tsx           # Root component (REPL)
-│           ├── ws-client.ts      # WebSocket reconnect client → gateway
-│           ├── commands.ts       # Client-side slash command handling
-│           ├── theme/            # Theme system (JSON themes)
-│           ├── components/       # UI components (InputBar, StatusBar, MessageView...)
-│           └── hooks/             # React hooks
+│           ├── main.ts            # Entry: 连接飞书 + 连接 gateway WebSocket
+│           ├── ws-client.ts       # WebSocket client → gateway (与 oca-cli 类似)
+│           ├── feishu-client.ts   # 飞书 API 客户端 (认证 + WebSocket 长连接)
+│           ├── feishu-card.ts     # AgentEvent → 飞书卡片 JSON
+│           ├── card-updater.ts    # 流式卡片更新 (rate-limited)
+│           └── image-helper.ts    # 图片上传发送
 │
 ├── installer/                   # @oca/oca-installer — 跨平台安装器
 │   ├── package.json
@@ -176,6 +185,7 @@ OpenCrossAgent/
 ```
 clients/
 ├── cli/          # TUI 客户端（当前）
+├── feishu/       # 飞书客户端（当前）
 ├── desktop-app/  # 桌面客户端（未来）
 └── mobile-app/   # 移动客户端（未来）
 ```
@@ -190,9 +200,9 @@ clients/
 
 ### 2. `gateway/src/channel/` — Channel Layer
 
-- **Why**: 对接前端层。不同前端（CLI 终端 / 飞书）有完全不同的协议（WebSocket vs Feishu API）和渲染方式（TUI vs 卡片），必须隔离。
-- **What**: 共享接口定义（`types.ts`）+ 各 channel 子目录。`cli/` 实现 localhost WebSocket 服务器，`feishu/` 实现飞书 WebSocket 长连接 + 流式卡片更新。
-- **When**: 新增渠道时在 `channel/` 下新建 `<name>/` 子目录；修改某渠道的协议或渲染逻辑时只动对应子目录。
+- **Why**: 对接前端层。不同前端（CLI 终端 / 飞书）有完全不同的协议和渲染方式，必须隔离。Gateway 侧的 channel 是 thin WebSocket relay，不做渲染转换。
+- **What**: 共享接口定义（`types.ts`）+ 各 channel 子目录。`cli/` 实现 localhost WebSocket 服务器（`/ws/cli`），`feishu/` 实现 thin WebSocket handler（`/ws/feishu`）。卡片渲染、飞书 API 对接等逻辑在 `clients/feishu/` 中。
+- **When**: 新增渠道时在 `channel/` 下新建 `<name>/` 子目录（thin WS handler）；同时在 `clients/<name>/` 下新建对应客户端。
 
 ### 3. `gateway/src/core/` — Gateway Core
 
@@ -258,9 +268,15 @@ clients/
 
 ### 9. `clients/cli/` — TUI 客户端
 
-- **Why**: CLI Channel 的前端渲染器。独立 package 因为依赖栈完全不同（@opentui/react + React 19 vs Node.js 服务端），且构建工具不同（bun build vs tsdown）。`clients/` 父目录预留多 client 扩展。
+- **Why**: CLI Channel 的前端渲染器。独立 package 因为依赖栈完全不同（@opentui/react + React 19 vs Node.js 服务端），且构建工具不同（bun build vs tsdown）。
 - **What**: React + OpenTUI 的 TUI 应用，通过 WebSocket 连接 gateway，含主题系统、UI 组件、客户端 slash 命令。
 - **When**: 修改终端 UI、主题、输入交互时。与 gateway 通过 WebSocket 通信，不直接 import gateway 代码。
+
+### 9b. `clients/feishu/` — 飞书客户端
+
+- **Why**: 飞书消息的监听和渲染器。独立 package 因为它是一个长驻 Node.js 服务进程，负责飞书 API 对接（WebSocket 长连接 + 卡片渲染 + 图片上传），通过 WebSocket 连接 gateway 转发消息。与 CLI 客户端平级，都是独立的可执行程序。
+- **What**: 飞书 WebSocket 长连接客户端 + 飞书卡片构建 + 流式卡片更新 + 图片上传。接收飞书消息 → 转发给 gateway → 收到 AgentEvent → 渲染为飞书卡片 → 发回飞书。
+- **When**: 修改飞书消息处理、卡片样式、图片功能时。与 gateway 通过 WebSocket 通信，不直接 import gateway 代码。
 
 ### 10. `installer/` — 跨平台安装器
 

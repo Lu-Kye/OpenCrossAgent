@@ -8,12 +8,12 @@
 
 ### `channel/types.ts`
 
-三个核心接口，所有 channel 实现必须实现：
+两个核心接口，所有 channel 实现必须实现（thin WS relay，不含渲染逻辑）：
 
 ```typescript
-/** 消息接收者 — 接收前端用户输入 */
+/** 消息接收者 — 接收前端 client 的 WebSocket 连接，relay 消息 */
 interface IChannel {
-  readonly name: string
+  readonly channelType: ChannelType
   start(): Promise<void>
   stop(): Promise<void>
   onMessage(handler: (msg: ChannelMessage) => void): void
@@ -25,11 +25,6 @@ interface IChannelBridge {
   bind(sessionId: string, channel: IChannel): void
   unbind(sessionId: string): void
   forwardToChannel(sessionId: string, event: AgentEvent): void
-}
-
-/** 事件渲染器 — 将 AgentEvent 转换为前端可渲染的格式 */
-interface IChannelRenderer {
-  render(event: AgentEvent): ChannelRenderResult
 }
 
 /** 前端用户消息 */
@@ -48,10 +43,7 @@ interface ChannelMessage {
 
 ### Feishu Channel (`channel/feishu/`)
 
-- `feishu-client.ts` — 飞书 WebSocket 长连接客户端
-- `feishu-channel.ts` — 实现 `IChannel`，接收飞书消息和 @bot 事件
-- `feishu-card.ts` — 实现 `IChannelRenderer`，将 AgentEvent 转为飞书卡片 JSON
-- `card-updater.ts` — 流式卡片更新器，支持增量更新卡片内容
+- `feishu-channel.ts` — Thin WebSocket handler（监听 `/ws/feishu`），与 `cli-channel.ts` 类似的 relay。不包含飞书 API 对接、卡片渲染逻辑 — 这些在 `clients/feishu/` 中。
 
 ---
 
@@ -345,6 +337,9 @@ interface McpTool {
 interface IAgentProvider {
   readonly name: string
 
+  /** 检测 Backend 是否可用（底层 agent 已安装且可执行） */
+  checkHealth(): Promise<HealthStatus>
+
   /** 分发 prompt 到 Agent，返回事件流 */
   dispatch(prompt: string, options: DispatchOptions): AsyncGenerator<AgentEvent>
 
@@ -362,6 +357,11 @@ interface IAgentProvider {
 
   /** 释放资源 */
   dispose(): Promise<void>
+}
+
+interface HealthStatus {
+  available: boolean
+  reason?: string  // 不可用时说明原因（如 "codely-cli not found in PATH"）
 }
 
 interface DispatchOptions {
@@ -398,6 +398,12 @@ class ProviderRegistry {
 
   /** 列出所有已注册的 Backend */
   list(): { name: string; provider: IAgentProvider }[]
+
+  /** 检测所有已注册 Backend 的可用性，返回健康状态列表 */
+  checkAllHealth(): Promise<{ name: string; status: HealthStatus }[]>
+
+  /** 获取第一个可用的 Backend，没有则抛错 */
+  resolveAvailable(): IAgentProvider
 }
 ```
 
@@ -478,18 +484,11 @@ interface GatewayConfig {
 }
 
 interface ChannelsConfig {
-  feishu?: FeishuChannelConfig
+  /** gateway 只需知道是否启用 feishu WS 端点，飞书凭证由 oca-feishu 读取 */
+  feishu?: { enabled: boolean }
   cli: { enabled: boolean }
 }
 
-interface FeishuChannelConfig {
-  enabled: boolean
-  appId: string
-  appSecret: string
-  verificationToken?: string
-  encryptKey?: string
-  maxConcurrentPerChat: number
-}
 
 interface ProviderConfig {
   name: string
@@ -510,17 +509,15 @@ interface ProviderConfig {
 ```typescript
 type ChannelType = 'cli' | 'feishu'
 
-interface ModelInfo {
-  id: string
-  name: string
-  contextWindow: number
-  maxOutput: number
+interface ChannelMessage {
+  sessionId: string
+  type: 'user_input' | 'slash_command'
+  content: string
+  args?: string[]
 }
 
-interface ChannelRenderResult {
-  format: 'text' | 'card' | 'markdown'
-  content: string | Record<string, unknown>
-}
+// 注意: ChannelRenderResult 已移至各 client 自行定义
+// ModelInfo 定义在 provider/types.ts 中
 ```
 
 ### `utils/config-loader.ts`

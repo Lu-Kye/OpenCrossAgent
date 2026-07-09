@@ -1,0 +1,34 @@
+{
+  "name": "@oca/oca-feishu",
+  "version": "0.1.0",
+  "description": "OpenCrossAgent Feishu Client — Feishu message listener and card renderer",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "oca-feishu": "./dist/main.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx watch src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.66.1",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
+    "tsdown": "^0.22.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.5"
+  }
+}
