@@ -40,7 +40,7 @@ OpenCrossAgent 的开发初衷是**社区共建一个通用 AI Agent 框架**。
 │                                                                          │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  Message Router                                                   │   │
-│  │  /command ──► Command System    自然语言 ──► Orchestrator          │   │
+│  │  /command ──► Command System    自然语言 ──► Dispatcher          │   │
 │  └───────────────┬──────────────────────────────┬────────────────────┘   │
 │                  │                              │                         │
 │                  ▼                              ▼                        │
@@ -56,19 +56,19 @@ OpenCrossAgent 的开发初衷是**社区共建一个通用 AI Agent 框架**。
 │  │  ├ nodes: agentrun, script, condition, set, loop                  │   │
 │  │  ├ templates: $args $node.id.json.field                            │   │
 │  │  │                                                                │   │
-│  │  └─ agentrun 节点 ──► Orchestrator                                │   │
+│  │  └─ agentrun 节点 ──► Dispatcher                                │   │
 │  │                                                                  │   │
 │  └──────────────────────────────┬───────────────────────────────────┘   │
 │                                 │                                        │
 │                                 │                                        │
 │                                 ▼                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │  Orchestrator                                                    │   │
+│  │  Dispatcher Orchestrator                                         │   │
 │  │                                                                  │   │
-│  │  AgentOrchestrator                                               │   │
-│  │  └ direct  (直接执行)                                             │   │
+│  │  DispatcherOrchestrator                                          │   │
+│  │  └ dispatch engine                                               │   │
 │  │                                                                  │   │
-│  │  UnifiedDispatchPipeline                                         │   │
+│  │  DispatchPipeline                                               │   │
 │  │  ├ prompt building (budget-aware)                                │   │
 │  │  ├ skill injection                                               │   │
 │  │  └ AgentEvent stream production                                  │   │
@@ -77,7 +77,7 @@ OpenCrossAgent 的开发初衷是**社区共建一个通用 AI Agent 框架**。
 │                ┌────────────────┴────────────────┐                     │
 │                ▼                                 ▼                      │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Infrastructure (shared by Command + Orchestrator + MCP)         │  │
+│  │  Infrastructure (shared by Command + Dispatcher + MCP)          │  │
 │  │                                                                  │  │
 │  │  SessionStore                                                    │  │
 │  │  ├ session name, workspaceDir, channel binding                    │  │

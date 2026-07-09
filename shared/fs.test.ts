@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { rmSync, existsSync, readFileSync } from 'node:fs'
+import { rmSync, readFileSync, existsSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { ensureDir, atomicWrite, pathExists } from './fs.js'
 
-const TMP_DIR = join(tmpdir(), 'oca-test-fs')
+const TMP_DIR = join(tmpdir(), 'oca-test-shared-fs')
 
 beforeEach(() => {
   rmSync(TMP_DIR, { recursive: true, force: true })

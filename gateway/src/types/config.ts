@@ -29,6 +29,7 @@ export interface ChannelsConfig {
 
 export interface ProviderConfig {
   name: string
-  type: 'codely' | 'opencode'
+  /** backend 类型标识，由各 backend 自行定义（如 'codely'、'opencode'），gateway 不限制枚举 */
+  type: string
   options: Record<string, unknown>
 }

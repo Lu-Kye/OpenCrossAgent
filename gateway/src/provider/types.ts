@@ -29,7 +29,7 @@ export interface IAgentProvider {
 /** Backend 健康检测结果 */
 export interface HealthStatus {
   available: boolean
-  /** 不可用时说明原因（如 "codely-cli not found in PATH"） */
+  /** 不可用时说明原因（如 "agent not found in PATH"） */
   reason?: string
 }
 

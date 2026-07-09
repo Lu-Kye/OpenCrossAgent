@@ -21,7 +21,7 @@
 | HTTP + WebSocket 服务器 | 📋 计划中 | 网关服务入口，提供 REST API 和 WebSocket 端点 |
 | CLI Channel | 📋 计划中 | Thin WebSocket handler (/ws/cli)，对接 oca-cli |
 | Feishu Channel | 📋 计划中 | Thin WebSocket handler (/ws/feishu)，对接 oca-feishu |
-| Agent Orchestrator | 📋 计划中 | 自然语言 → Provider 调度（最小版，不含 prompt-builder/skill-injector） |
+| Dispatcher Orchestrator | 📋 计划中 | 自然语言 → Provider 调度（最小版，不含 prompt-builder/skill-injector） |
 | Command System | ❌ 不实现 | 用户后续重新架构 |
 | MCP Tool Server | 📋 计划中 | 最小框架 + current_context 工具 |
 | CodelyCli Provider | 📋 计划中 | ACP 协议对接 codely-cli |
@@ -84,7 +84,7 @@
 # 安装依赖
 pnpm install
 
-# 构建全部
+# 构建全部 package
 pnpm -r build
 
 # 单独构建
@@ -92,6 +92,9 @@ pnpm --filter @oca/oca-gateway build
 pnpm --filter @oca/oca-cli build
 pnpm --filter @oca/oca-feishu build
 pnpm --filter @oca/oca-installer build
+
+# shared/ 测试（独立运行，不需要构建）
+cd shared && npx vitest run
 
 # 本地开发
 pnpm dev          # 一键启动 gateway + cli

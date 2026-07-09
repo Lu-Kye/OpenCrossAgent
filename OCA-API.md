@@ -142,19 +142,19 @@ interface NodeResult {
 
 ### `core/orchestrator/` — Orchestrator
 
-#### `orchestrator/agent-orchestrator.ts`
+#### `orchestrator/dispatcher-orchestrator.ts`
 
 ```typescript
-class AgentOrchestrator {
-  /** 直接执行模式: 接收用户输入 → 启动 dispatch pipeline */
+class DispatcherOrchestrator {
+  /** 调度引擎: 接收用户输入 → resolve provider → 启动 dispatch pipeline */
   execute(
     prompt: string,
     sessionId: string,
-    options?: OrchestratorOptions
+    options?: DispatcherOptions
   ): AsyncGenerator<AgentEvent>
 }
 
-interface OrchestratorOptions {
+interface DispatcherOptions {
   skillNames?: string[]
   maxTokens?: number
   providerName?: string
@@ -164,9 +164,9 @@ interface OrchestratorOptions {
 #### `orchestrator/dispatch-pipeline.ts`
 
 ```typescript
-class UnifiedDispatchPipeline {
+class DispatchPipeline {
   /**
-   * 统一调度管道:
+   * 调度管道:
    * prompt building → skill injection → provider dispatch → event stream production
    */
   run(input: DispatchInput): AsyncGenerator<AgentEvent>
@@ -492,7 +492,8 @@ interface ChannelsConfig {
 
 interface ProviderConfig {
   name: string
-  type: 'codely' | 'opencode'
+  /** backend 类型标识，由各 backend 自行定义，gateway 不限制枚举 */
+  type: string
   options: Record<string, unknown>
 }
 ```
@@ -549,3 +550,53 @@ interface ManagedProcess {
   onExit(handler: (code: number | null) => void): void
 }
 ```
+
+---
+
+## 跨 package 共享代码 (`shared/`)
+
+> `shared/` 不是独立 package，通过相对路径 import。构建时被各 package 的 bundler 打包进各自的 dist 中。
+
+### `shared/fs.ts`
+
+```typescript
+/** 确保目录存在（递归创建） */
+function ensureDir(path: string): Promise<void>
+
+/** 原子写入文件 (temp→rename) */
+function atomicWrite(path: string, content: string): Promise<void>
+
+/** 检查文件是否存在 */
+function pathExists(path: string): Promise<boolean>
+```
+
+### `shared/logger.ts`
+
+```typescript
+interface TagLogger {
+  info(msg: string, ...args: unknown[]): void
+  warn(msg: string, ...args: unknown[]): void
+  error(msg: string, ...args: unknown[]): void
+  debug(msg: string, ...args: unknown[]): void
+}
+
+/** 初始化日志目录 */
+function initLogger(dir: string): void
+
+/** 设置日志文件后缀（用于临时实例，如 -18790） */
+function setLogSuffix(suffix: string): void
+
+/** 关闭所有 logger */
+function closeLogger(): void
+
+/** 创建带 tag 的 logger，日志输出到 console + ~/.oca/logs/<tag>.log */
+function createTagLogger(tag: string): TagLogger
+```
+
+TAG_DESTINATION 映射: `gateway`→gateway.log, `feishu`→feishu.log, `cli-channel`→cli-channel.log, `backend`→backend.log, `agent`→agent.log, `mcp`→mcp.log, `oca-cli`→oca-cli.log, `oca-feishu`→oca-feishu.log, `installer`→installer.log
+
+### Gateway 直接引用
+
+Gateway 代码直接从 `shared/` import（无中间 re-export 层）：
+- `import { ensureDir, atomicWrite, pathExists } from '../../../../shared/fs.js'`
+- `import { createTagLogger, initLogger } from '../../../../shared/logger.js'`

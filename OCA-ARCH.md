@@ -45,6 +45,13 @@ OpenCrossAgent/
 ├── README.md
 ├── .gitignore
 │
+├── shared/                      # 跨 package 共享代码（非独立 package，相对路径 import）
+│   ├── fs.ts                    # ensureDir + atomicWrite + pathExists
+│   ├── logger.ts                # createTagLogger + initLogger + setLogSuffix + closeLogger
+│   ├── fs.test.ts               # fs 单元测试
+│   ├── logger.test.ts           # logger 单元测试
+│   └── vitest.config.ts         # shared 独立测试配置
+│
 ├── gateway/                     # @oca/oca-gateway — 网关核心服务
 │   ├── package.json
 │   ├── tsconfig.json            # extends ../../tsconfig.base.json
@@ -84,8 +91,8 @@ OpenCrossAgent/
 │       │   │       └── loop.ts
 │       │   │
 │       │   ├── orchestrator/    # Orchestrator
-│       │   │   ├── agent-orchestrator.ts   # AgentOrchestrator (direct execution)
-│       │   │   ├── dispatch-pipeline.ts    # UnifiedDispatchPipeline
+│       │   │   ├── dispatcher-orchestrator.ts   # DispatcherOrchestrator (dispatch engine)
+│       │   │   ├── dispatch-pipeline.ts    # DispatchPipeline
 │       │   │   ├── prompt-builder.ts       # Budget-aware prompt building
 │       │   │   └── skill-injector.ts       # Skill injection
 │       │   │
@@ -219,9 +226,9 @@ clients/
   - **What**: `scanner.ts`（4 级目录扫描自动发现命令）、`executor.ts`（节点图引擎：topo sort + 顺序执行）、`templates.ts`（模板引擎解析 `$args` / `$node.id.json.field`）、`nodes/`（五种节点类型实现：agentrun / script / condition / set / loop）。
   - **When**: 新增节点类型时在 `nodes/` 下新增文件 + 在 `executor.ts` 注册；修改扫描规则时动 `scanner.ts`。
 
-  **3.3 `orchestrator/`** — Orchestrator
-  - **Why**: 处理自然语言输入，构建 prompt、注入 skill、调度 Agent Backend 执行并产出 AgentEvent 流。
-  - **What**: `agent-orchestrator.ts`（直接执行模式）、`dispatch-pipeline.ts`（统一调度管道）、`prompt-builder.ts`（Budget-aware prompt 构建）、`skill-injector.ts`（读取 `skills/*.md` 注入 prompt）。
+  **3.3 `orchestrator/`** — Dispatcher Orchestrator
+  - **Why**: 网关内部的调度引擎（Dispatcher）。接收用户消息，resolve 外部 agent provider，通过 pipeline 调度执行并产出 AgentEvent 流。Dispatcher 是 high-level 编排，Agent 是 low-level 外部工具。
+  - **What**: `dispatcher-orchestrator.ts`（调度引擎）、`dispatch-pipeline.ts`（调度管道）、`prompt-builder.ts`（Budget-aware prompt 构建）、`skill-injector.ts`（读取 `skills/*.md` 注入 prompt）。
   - **When**: 修改 prompt 策略动 `prompt-builder.ts`；修改 skill 注入动 `skill-injector.ts`；新增调度阶段扩展 `dispatch-pipeline.ts`。
 
   **3.4 `infra/`** — Infrastructure
@@ -260,11 +267,17 @@ clients/
 - **What**: 每个 skill 是一个 `.md` 文件，包含指导 LLM 行为的 prompt 片段。
 - **When**: 新增/修改 skill 时操作 `.md` 文件，不碰代码。
 
-### 8. `gateway/src/types/` + `utils/` — 共享类型与工具
+### 8. `gateway/src/types/` + `utils/` — Gateway 专属类型与工具
 
-- **Why**: 四层共用的类型定义和工具函数。避免循环依赖和重复定义。
-- **What**: `types/`（config / session / common 类型定义）、`utils/`（config-loader / fs / process 工具函数）。
-- **When**: 新增共享类型或工具函数时。只放真正被多层共用的代码，层内私有工具不放在这里。
+- **Why**: Gateway 四层共用的类型定义和工具函数。仅 gateway 内部使用，不跨 package。
+- **What**: `types/`（config / session / common 类型定义）、`utils/`（config-loader 配置加载、process 进程管理）。fs 和 logger 直接从 `shared/` import，不在 gateway 中重复。
+- **When**: 新增 gateway 内部共享类型或工具函数时。只放真正被多层共用的代码，层内私有工具不放在这里。
+
+### 8b. `shared/` — 跨 package 共享代码
+
+- **Why**: logger 和 fs 工具被所有可执行程序（gateway / cli / feishu / installer）共用。不能放在 gateway 中（OCA-RULE 禁止 clients/ import gateway/ 源码）。
+- **What**: `fs.ts`（ensureDir / atomicWrite / pathExists）、`logger.ts`（createTagLogger / initLogger / setLogSuffix / closeLogger）。不是独立 package，通过相对路径 import。构建时被 tsdown/bun build 打包进各 package 的 dist 中。
+- **When**: 新增跨 package 共用的工具函数时。仅放真正被多个 package 使用的代码，gateway 专属工具不放这里。
 
 ### 9. `clients/cli/` — TUI 客户端
 
@@ -306,6 +319,11 @@ channel/ ──→ core/ ──→ provider/ ←── backend/
    └─────→ types/    types/
               ↑
            utils/
+
+跨 package:
+gateway/ ──→ shared/ (fs, logger)
+clients/ ──→ shared/ (fs, logger)
+installer/ ──→ shared/ (fs, logger)
 ```
 
 允许的依赖方向：

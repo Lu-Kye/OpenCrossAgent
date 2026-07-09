@@ -21,6 +21,7 @@
 6. **`.js` 扩展名** — 相对 import 必须带 `.js` 扩展名（NodeNext ESM 要求）。`import { foo } from './bar.js'`
 7. **ESM shim** — `__dirname` / `__filename` 在 ESM 中不存在，必须用 `fileURLToPath(import.meta.url)` 注入。
 8. **资产与代码分离** — `commands/*.json` 和 `skills/*.md` 是配置资产，不混入 TypeScript 源码，构建时复制到 dist。
+9. **修改后必须测试** — 修改功能代码后，必须编写或更新对应的单元测试（`*.test.ts` 就近放置），并执行 `pnpm --filter <package> test` 验证通过。不得跳过测试直接归档。
 
 ### MUST NOT
 
@@ -37,6 +38,7 @@
 2. **仿写风格** — 新代码的格式、命名、类型标注与同文件或同目录已有代码保持一致。
 3. **增量推进** — 复杂任务拆分为可验证的步骤，逐步完成。
 4. **就近放置测试** — `*.test.ts` 与被测文件同目录；层内私有类型放在层目录内，不提取到 `types/`。
+5. **端到端验证** — 当修改涉及可执行程序入口、构建配置或跨模块集成时，应模拟运行对应的 OCA 可执行程序（如 `oca-gateway start`、`oca-cli`、`oca-feishu`）进行端到端验证，确认实际行为符合预期。
 
 ---
 
@@ -53,6 +55,8 @@
 | `channel/` import `backend/` | Channel 不知道 Backend 存在 | Channel 只与 `core/` 交互 |
 | `clients/` import `gateway/` 源码 | Client 与 Gateway 是独立进程 | 通过 WebSocket 通信 |
 | `clients/feishu/` import `clients/cli/` 源码 | Client 之间完全隔离 | 各自独立实现 |
+| `gateway/` import `clients/` 源码 | Gateway 不依赖 client 实现 | 通过 WebSocket 通信 |
+| 跨 package 共享代码不放 `shared/` | 避免各 package 各自复制维护 | 放入 `shared/`，通过相对路径 import |
 
 允许的依赖方向详见 [OCA-ARCH.md](./OCA-ARCH.md) §依赖方向。
 
