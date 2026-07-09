@@ -5,4 +5,6 @@ dist/
 .codely/
 .codely-cli/
 .claw/
+.oca/
+.pids/
 

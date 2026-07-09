@@ -1,0 +1,46 @@
+{
+  "name": "@oca/oca-cli",
+  "version": "0.1.0",
+  "description": "OpenCrossAgent CLI — terminal interface to the OCA gateway (OpenTUI edition)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "oca-cli": "./dist/main.js"
+  },
+  "files": [
+    "dist/main.js",
+    "dist/themes/",
+    "build.ts"
+  ],
+  "scripts": {
+    "build": "bun run build.ts",
+    "dev": "bun --watch src/main.tsx",
+    "start": "bun run dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "dependencies": {
+    "@opentui/core": "0.3.1",
+    "@opentui/react": "0.3.1",
+    "react": "^19.0.0",
+    "ws": "^8.20.0"
+  },
+  "optionalDependencies": {
+    "@opentui/core-darwin-arm64": "0.3.1",
+    "@opentui/core-darwin-x64": "0.3.1",
+    "@opentui/core-linux-arm64": "0.3.1",
+    "@opentui/core-linux-x64": "0.3.1",
+    "@opentui/core-win32-x64": "0.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/ws": "^8.18.1",
+    "tsdown": "^0.22.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.5"
+  }
+}

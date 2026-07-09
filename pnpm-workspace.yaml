@@ -1,0 +1,25 @@
+packages:
+  - 'gateway'
+  - 'clients/cli'
+  - 'installer'
+allowBuilds:
+  esbuild: true
+  protobufjs: true
+# Install @opentui/core native binaries for ALL platforms, not just the
+# current one. This ensures oca-cli works on any OS after a single pnpm install.
+supportedArchitectures:
+  os:
+    - win32
+    - darwin
+    - linux
+  cpu:
+    - x64
+    - arm64
+# Hoisted layout ensures native optional deps are accessible to transitive consumers.
+nodeLinker: hoisted
+# @opentui/core dynamically loads its platform-native binary at runtime.
+# @rolldown/binding-* (used by tsdown) are optional deps that pnpm doesn't
+# symlink into the package's own node_modules without hoisting.
+publicHoistPattern:
+  - '@opentui/core-*'
+  - '@rolldown/binding-*'

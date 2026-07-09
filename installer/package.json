@@ -1,0 +1,23 @@
+{
+  "name": "@oca/oca-installer",
+  "version": "0.1.0",
+  "description": "OpenCrossAgent installer — cross-platform installation script",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "oca-installer": "./dist/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsdown": "^0.22.3",
+    "typescript": "^5.8.0"
+  }
+}

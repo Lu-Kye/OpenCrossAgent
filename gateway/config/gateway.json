@@ -1,0 +1,39 @@
+{
+  "$schema": "https://opencrossagent.dev/config.schema.json",
+  "channels": {
+    "feishu": {
+      "enabled": true,
+      "appId": "${FEISHU_APP_ID}",
+      "appSecret": "${FEISHU_APP_SECRET}",
+      "verificationToken": "${FEISHU_VERIFICATION_TOKEN}",
+      "encryptKey": "${FEISHU_ENCRYPT_KEY}",
+      "maxConcurrentPerChat": 3
+    },
+    "cli": {
+      "enabled": true
+    }
+  },
+  "providers": [
+    {
+      "name": "codely",
+      "type": "codely",
+      "options": {
+        "model": "codely/codely-core",
+        "workspace": "${WORKSPACE_DIR}"
+      }
+    },
+    {
+      "name": "opencode",
+      "type": "opencode",
+      "options": {
+        "workspace": "${WORKSPACE_DIR}"
+      }
+    }
+  ],
+  "defaultProvider": "codely",
+  "gateway": {
+    "port": 18789,
+    "host": "0.0.0.0"
+  },
+  "logDir": "~/.oca/logs"
+}
