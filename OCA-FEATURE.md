@@ -14,41 +14,11 @@
 
 ## 项目功能清单
 
-### Gateway 功能
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| HTTP + WebSocket 服务器 | 📋 计划中 | 网关服务入口，提供 REST API 和 WebSocket 端点 |
-| CLI Channel | 📋 计划中 | Thin WebSocket handler (/ws/cli)，对接 oca-cli |
-| Feishu Channel | 📋 计划中 | Thin WebSocket handler (/ws/feishu)，对接 oca-feishu |
-| Dispatcher Orchestrator | 📋 计划中 | 自然语言 → Provider 调度（最小版，不含 prompt-builder/skill-injector） |
-| Command System | ❌ 不实现 | 用户后续重新架构 |
-| MCP Tool Server | 📋 计划中 | 最小框架 + current_context 工具 |
-| CodelyCli Provider | 📋 计划中 | ACP 协议对接 codely-cli |
-| OpenCode Provider | 📋 计划中 | SessionV2 API + SQLite 事件源 |
-| Session 管理 | 📋 计划中 | 持久化 session + 队列 + 定时任务 |
-
-### Client 功能
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| TUI 客户端 (oca-cli) | 📋 计划中 | @opentui/react + React 19，全功能 |
-| 主题系统 | 📋 计划中 | JSON 主题 + OKLCH 颜色 |
-| Vim 模式 | 📋 计划中 | insert/normal/visual/command |
-| WebSocket 重连 | 📋 计划中 | 指数退避 + jitter |
-| Slash 命令 | 📋 计划中 | /theme /model /vim /spinner /stop |
-| 飞书客户端 (oca-feishu) | 📋 计划中 | 飞书 WebSocket 长连接 + 卡片渲染 + 流式更新 |
-| 飞书卡片构建 | 📋 计划中 | AgentEvent → 飞书卡片 JSON |
-| 流式卡片更新 | 📋 计划中 | rate-limited 批量更新 |
-| 图片上传发送 | 📋 计划中 | 飞书图片 API |
-
-### Installer 功能
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| 一键安装 | 📋 计划中 | 检查依赖 → 安装 → 配置 → link bins |
-| 配置向导 | 📋 计划中 | 交互式生成 ~/.oca/gateway.json |
-| 更新 | 📋 计划中 | 拉取最新 + 重新构建 |
+> 各模块详细功能清单见对应模块级 OCA-FEATURE：
+> - [gateway/OCA-FEATURE.md](./gateway/OCA-FEATURE.md)
+> - [clients/cli/OCA-FEATURE.md](./clients/cli/OCA-FEATURE.md)
+> - [clients/feishu/OCA-FEATURE.md](./clients/feishu/OCA-FEATURE.md)
+> - [installer/OCA-FEATURE.md](./installer/OCA-FEATURE.md)
 
 ## 运行时架构
 

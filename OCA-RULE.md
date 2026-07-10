@@ -131,7 +131,7 @@ const provider = new CodelyProvider()
 - ❌ **不拆分子 package** — 四层保持在 gateway 单 package 内，通过目录划分边界
 - ❌ **不引入 DI 容器** — 直接函数调用 + ProviderRegistry 足够
 - ❌ **不设计插件系统** — Channel 和 Backend 通过约定扩展，不需要运行时插件加载
-- ❌ **不创建 `shared/` package** — 共享代码放 `types/` + `utils/` 即可
+- ❌ **不创建 `shared/` package** — `shared/` 是目录而非独立 npm package，通过相对路径 import。跨 package 共享代码放 `shared/` 目录（`fs.ts` / `logger.ts`），不复制到各 package 内
 
 ---
 
